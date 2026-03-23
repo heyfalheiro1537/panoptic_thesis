@@ -157,7 +157,6 @@ These describe WHAT the team produces:
 | `deploy_frequency`                    | Merged PRs per sprint (proxy for deploys)              | `GET /repos/{org}/{repo}/pulls?state=closed`      |
 | `median_lead_time_hours`              | Median time from PR creation to merge                  | PR `created_at` → `merged_at` delta               |
 | `change_failure_rate`                 | Reverted PRs / total merged PRs                        | Revert detection in commit messages or linked PRs |
-| `revert_rate`                         | Same as CFR — key quality signal                       | Most reliable quality metric, hard to game        |
 | `blocking_review_ratio`               | Reviews with CHANGES_REQUESTED / total reviews         | `GET /repos/{org}/{repo}/pulls/{n}/reviews`       |
 | `blocking_review_count`               | Absolute count of blocking reviews                     | Filter by `state: CHANGES_REQUESTED`              |
 | `total_review_rounds`                 | Total review events per sprint                         | All review types counted                          |
@@ -208,7 +207,9 @@ These describe WHAT the team produces:
 | Metric                  | Formula                                                             | Purpose                                             |
 | ----------------------- | ------------------------------------------------------------------- | --------------------------------------------------- |
 | `c_human`               | `team_size × avg_daily_rate × working_days_per_sprint`              | Fixed cost baseline                                 |
-| `c_ai_effective`        | `ai_cost_raw / ((agent_acceptance_rate + tab_acceptance_rate) / 2)` | Effective AI spend adjusted for acceptance quality  |
+| `c_ai_effective_agent`  | `ai_cost_raw × agent_share / agent_acceptance_rate`                 | Agent spend adjusted for acceptance quality         |
+| `c_ai_effective_tab`    | `ai_cost_raw × tab_share / tab_acceptance_rate`                     | Tab spend adjusted for acceptance quality           |
+| `c_ai_effective`        | `c_ai_effective_agent + c_ai_effective_tab`                         | Total effective AI spend (sum of both channels)     |
 | `c_rework`              | `blocking_reviews × review_cost + reverts × revert_cost`            | Quality debt cost                                   |
 | `v_output`              | `weighted_prs × quality_mult × stability_mult`                      | Quality-adjusted output                             |
 | `quality_multiplier`    | `baseline_revert / (baseline_revert + actual_revert)`               | Bounded 0-1 decay                                   |
@@ -320,7 +321,7 @@ src/
   - Calls all three clients, computes all raw features, returns flat dict (one row)
 6. Create `src/metrics/costs.py`
   - `compute_costs(df, config) -> DataFrame`
-  - Add columns: `c_human`, `c_ai_effective` (raw / acceptance), `c_rework`, `c_total`
+  - Add columns: `c_human`, `c_ai_effective_agent`, `c_ai_effective_tab`, `c_ai_effective` (sum), `c_rework`, `c_total`
   - Use realistic BRL-based cost constants
 7. Create `src/metrics/output_value.py`
   - `compute_output_and_rodi(df) -> DataFrame`
