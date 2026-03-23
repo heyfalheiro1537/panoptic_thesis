@@ -1,5 +1,25 @@
 # AI-Calibrated DORA: Predicting Team Health from AI Tool Usage Signals
 
+
+
+## TL;DR
+
+"Every company with AI coding tools asks: is this working? We built a system that answers that question using real production data — not surveys, not vendor benchmarks — and it reveals which specific usage patterns predict whether teams benefit from AI or not."
+
+### The contribution
+
+1. An economic model that treats engineers as production units, making AI tool ROI measurable at the team level
+2. Empirical evidence of which AI operational signals predict team health outcomes — the first such analysis in the literature
+3. A practical, deployable diagnostic tool that any engineering org can use to make evidence-based AI investment decisions
+
+### The validation
+
+- Ablation study: model with Cursor signals vs without → quantified improvement
+- Leave-one-team-out CV: model generalizes across teams, not memorizing
+- Comparison with existing frameworks: our signals predict outcomes that DORA alone misses
+
+---
+
 ## Project overview
 
 Build a ML system that learns which aspects of AI coding tool usage (Cursor) predict whether engineering teams are healthy or degrading, using real production data from a engineering org.
@@ -486,7 +506,7 @@ No new files to create — Phase 1 clients already define the full interface. Th
 
 1. **Validate Cursor API endpoint mapping against production**
   - For each of the 12 methods in `CursorClient`, confirm the real endpoint returns the expected schema
-  - Note the 30-day date range limit: add date-range chunking inside `CursorClient._fetch_`* methods when date spans > 30 days
+  - Note the 30-day date range limit: add date-range chunking inside `CursorClient._fetch`_* methods when date spans > 30 days
   - Note that `ai_code_share` (Group A7) is not available via API — retrieve via dashboard CSV export or derive from `agent_lines_accepted + tab_lines_accepted` vs total committed lines
   - Document confirmed field mappings in `docs/cursor_api_mapping.md`
 2. Implement `mock=False` path in `src/clients/github.py`
@@ -546,48 +566,6 @@ python -m venv venv
 source venv/bin/activate
 pip install pandas numpy scikit-learn xgboost shap scipy statsmodels plotly altair streamlit requests PyGithub jupyter pytest
 ```
-
----
-
-## Thesis defense preparation
-
-### The pitch (30 seconds)
-
-"Every company with AI coding tools asks: is this working? We built a system that answers that question using real production data — not surveys, not vendor benchmarks — and it reveals which specific usage patterns predict whether teams benefit from AI or not."
-
-### The contribution (2 minutes)
-
-1. An economic model that treats engineers as production units, making AI tool ROI measurable at the team level
-2. Empirical evidence of which AI operational signals predict team health outcomes — the first such analysis in the literature
-3. A practical, deployable diagnostic tool that any engineering org can use to make evidence-based AI investment decisions
-
-### The validation
-
-- Ablation study: model with Cursor signals vs without → quantified improvement
-- Leave-one-team-out CV: model generalizes across teams, not memorizing
-- Comparison with existing frameworks: our signals predict outcomes that DORA alone misses
-
-### Expected pushback and responses
-
-- "Your sample size is small" → "Yes, but we validate with cross-team CV and compare synthetic vs real. We also frame contributions as exploratory findings, not universal laws."
-- "Cursor API might not have what you need" → "Client classes support both mock and real modes. Fallback: infer AI usage from GitHub signals. The framework works with degraded input."
-- "RoDI denominator is dominated by C_human" → "Acknowledged. The interesting variance is in V_output and the operational signals that predict it. C_human is context, not the optimization target."
-- "How is this different from just using DORA?" → "DORA measures output. We measure the process that produces the output. Our ablation study quantifies exactly how much predictive power the operational signals add."
-
----
-
-## Open risks
-
-
-| Risk                                           | Impact                                           | Mitigation                                                                                  |
-| ---------------------------------------------- | ------------------------------------------------ | ------------------------------------------------------------------------------------------- |
-| Cursor API 30-day date range limit             | Sprint windows > 30 days need multiple API calls | Implement date-range chunking in `extract_sprint_metrics`; default sprint = 2 weeks         |
-| AI Code Attribution requires on-device scoring | Can't retroactively attribute code from all devs | Use as secondary signal; rely on `agent_acceptance_rate` + `tab_acceptance_rate` as primary |
-| GitHub access not approved                     | Can't run on real data                           | Thesis runs on synthetic with architecture designed for real swap                           |
-| Too few teams (<5)                             | Clustering meaningless, model overfits           | Focus on time-series within teams, not cross-team generalization                            |
-| No incidents in observation window             | Lose ground truth target                         | Use revert rate + review churn as primary targets instead                                   |
-| Synthetic patterns don't match reality         | Mock validation doesn't transfer                 | Acknowledge explicitly, frame as framework contribution not empirical claim                 |
-
 
 ---
 
